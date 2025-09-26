@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Todo list</title>
+
+    <!--Tailwind CDN-->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="max-w-2xl mx-auto p-6">
+
+    <!--헤더-->
+    <header class="text-center mb-8">
+        <h1 class="text-4xl font-bold text-blue-600">Todo List</h1>
+    </header>
+
+    <!--Todo 추가 영역-->
+    <h2 class="text-xl font-semibold text-gray-800 mb-4">할일 추가하기</h2>
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6 flex gap-2"> 
+    <input type="text" id="todoInput" placeholder="새로운 할일을 입력하세요..." 
+      class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+      <button onclick="addTodo()" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+                    추가 </button>
+      </div>
+
+     <!--할일목록-->
+     <h2 class="text-xl font-semibold text-gray-800 mb-4">할일 목록</h2>
+        <div id="todoList" class="bg-white rounded-lg shadow-md p-6 space-y-2">
+          <div id="emptyMessage" class="text-center text-gray-500 py-8 hidden">
+                아직 할일이 없습니다. 새로운 할일을 추가해보세요! 🎯
+          </div>
+          </div>
+
+    <!--진행 현황-->
+    <div class="bg-white rounded-lg shadow-md p-6 mt-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-3">📊 진행 현황</h3>
+            <div class="grid grid-cols-3 gap-4 text-center">
+                <div>
+                    <div id="totalCount" class="text-2xl font-bold text-blue-600">0</div>
+                    <div class="text-sm text-gray-500">전체</div>
+                </div>
+                <div>
+                    <div id="completedCount" class="text-2xl font-bold text-green-600">0</div>
+                    <div class="text-sm text-gray-500">완료</div>
+                </div>
+                <div>
+                    <div id="remainingCount" class="text-2xl font-bold text-orange-600">0</div>
+                    <div class="text-sm text-gray-500">남은 일</div>
+                </div>
+            </div>
+        </div>
+    
+</body>
+
+<!--JavaScript 영역-->
+<script>
+  // 전역 변수
+  let todos = []; //할일 목록을 저장할 배열
+
+  // 요소
+  const input = document.getElementById('todoInput');
+  const list  = document.getElementById('todoList');
+  const totalCount = document.getElementById('totalCount');
+  const completedCount = document.getElementById('completedCount');
+  const remainingCount = document.getElementById('remainingCount');
+  const emptyMessage = document.getElementById('emptyMessage');
+
+
+  // 저장
+  function saveTodos() {
+    localStorage.setItem('todos', JSON.stringify(todos));
+  }
+
+  // 불러오기
+  function loadTodos() {
+    const data = localStorage.getItem('todos');
+    if (data) {
+        todos = JSON.parse(data);
+    }
+  }
+
+  // 화면에 그리기
+  function renderTodos() {
+    list.innerHTML = '';
+
+    //목록이 비어있을 때
+    if (todos.length === 0) {
+    emptyMessage.classList.remove('hidden');
+       list.appendChild(emptyMessage);          // 목록 박스 안에 다시 넣기
+    updateStats();
+    return; 
+    } 
+    
+    else {
+    emptyMessage.classList.add('hidden');
+  }
+
+    todos.forEach(t => {
+      const row = document.createElement('div');
+      row.className = 'flex items-center justify-between p-2 border rounded';
+
+      // 왼쪽: 체크박스 + 텍스트
+      const left = document.createElement('div');
+      left.className = 'flex items-center gap-2';
+
+      const chk = document.createElement('input');
+      chk.type = 'checkbox';
+      chk.checked = t.completed;
+      chk.addEventListener('change', () => toggleTodo(t.id));
+
+      const txt = document.createElement('span');
+      txt.textContent = t.text;
+      if (t.completed) txt.className = 'line-through text-gray-400';
+
+      left.appendChild(chk);
+      left.appendChild(txt);
+
+      // 오른쪽: 삭제 버튼
+      const del = document.createElement('button');
+      del.textContent = '삭제';
+      del.className = 'text-red-500 hover:text-red-700 text-sm';
+      del.addEventListener('click', () => deleteTodo(t.id));
+
+      row.appendChild(left);
+      row.appendChild(del);
+      list.appendChild(row);
+    });
+
+      updateStats();
+
+  }
+
+  // 할 일 추가
+  function addTodo() {
+    const text = input.value.trim();
+    if (!text) return;
+
+    const item = {
+      id: Date.now(),
+      text,
+      completed: false,
+      createdAt: new Date().toISOString()
+    };
+
+    todos.push(item);
+    saveTodos();
+    renderTodos();
+    input.value = '';
+    input.focus();
+  }
+
+  // 할 일 삭제
+  function deleteTodo(id) {
+    todos = todos.filter(t => t.id !== id);
+    saveTodos();
+    renderTodos();
+  }
+
+  // 완료 토글
+  function toggleTodo(id) {
+    const t = todos.find(v => v.id === id);
+    if (!t) return;
+    t.completed = !t.completed;
+    saveTodos();
+    renderTodos();
+  }
+
+  function saveTodos() {
+  localStorage.setItem('todos', JSON.stringify(todos));
+}
+
+function loadTodos() {
+  const data = localStorage.getItem('todos');
+  if (data) {
+    todos = JSON.parse(data);
+  }
+}
+
+function updateStats() {
+  const total = todos.length;
+  const completed = todos.filter(t => t.completed).length;
+  const remaining = total - completed;
+
+  totalCount.textContent = total;
+  completedCount.textContent = completed;
+  remainingCount.textContent = remaining;
+}
+
+  // Enter로 추가
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') addTodo();
+  });
+
+  // 초기 로드
+  loadTodos();
+  renderTodos();
+</script>
+
+</html>
